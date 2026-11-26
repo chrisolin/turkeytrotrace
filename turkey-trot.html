@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Turkey Trot Time Guess</title>
+<style>
+  :root {
+    --bg: #fbf5ec;
+    --card: #ffffff;
+    --ink: #3b2a1a;
+    --muted: #8a7560;
+    --accent: #c4561d;
+    --accent-dark: #9c3f10;
+    --gold: #e0a526;
+    --line: #ead9c4;
+    --good: #2f7d4a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.4;
+  }
+  header {
+    background: linear-gradient(135deg, var(--accent), #8a3a12);
+    color: #fff;
+    padding: 24px 16px;
+    text-align: center;
+  }
+  header h1 { margin: 0; font-size: 2rem; }
+  header p { margin: 6px 0 0; opacity: .9; }
+  main { max-width: 760px; margin: 0 auto; padding: 16px; }
+  section {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+  h2 { margin: 0 0 12px; font-size: 1.2rem; }
+  form.row { display: flex; gap: 8px; flex-wrap: wrap; }
+  input {
+    font: inherit;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    min-width: 0;
+  }
+  input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+  #nameInput { flex: 2 1 180px; }
+  #guessInput { flex: 1 1 120px; }
+  button {
+    font: inherit;
+    font-weight: 600;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px;
+    background: var(--accent);
+    color: #fff;
+    cursor: pointer;
+  }
+  button:hover { background: var(--accent-dark); }
+  button.secondary { background: #efe3d3; color: var(--ink); }
+  button.secondary:hover { background: #e4d3bd; }
+  button.link {
+    background: none; color: var(--muted); padding: 4px 8px; font-weight: 500;
+  }
+  button.link:hover { color: var(--accent-dark); background: none; }
+  .hint { color: var(--muted); font-size: .9rem; margin: 8px 0 0; }
+  .error { color: #b3261e; font-size: .9rem; margin: 8px 0 0; min-height: 1.2em; }
+  .counts { color: var(--muted); font-size: .9rem; font-weight: 400; }
+
+  ul.runners { list-style: none; margin: 0; padding: 0; }
+  ul.runners li {
+    border-top: 1px solid var(--line);
+    padding: 10px 4px;
+  }
+  ul.runners li:first-child { border-top: none; }
+  .runner-row { display: flex; align-items: center; gap: 10px; }
+  .runner-name {
+    flex: 1;
+    text-align: left;
+    background: none;
+    color: var(--ink);
+    padding: 6px 8px;
+    font-size: 1.05rem;
+  }
+  .runner-name:hover { background: #f7ecdf; color: var(--ink); }
+  .runner-meta { color: var(--muted); font-size: .9rem; white-space: nowrap; }
+  .done-badge { color: var(--good); font-weight: 600; }
+  .finish-form {
+    display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0 4px 8px;
+  }
+  .finish-form input { flex: 1 1 140px; }
+  .empty { color: var(--muted); text-align: center; padding: 12px; }
+  li.finished .runner-name { color: var(--muted); }
+  body.running li:not(.finished) .runner-name {
+    background: #fdf0e4; border: 1px solid var(--line); padding: 10px 12px;
+  }
+  body.running li:not(.finished) .runner-name:hover { background: #f9e0c8; }
+
+  .clock-wrap { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  #clock {
+    font-size: 2.6rem; font-weight: 800; font-variant-numeric: tabular-nums;
+    letter-spacing: .02em; min-width: 6ch;
+  }
+  #clock.idle { color: var(--muted); }
+  #startBtn { font-size: 1.1rem; padding: 12px 22px; background: var(--good); }
+  #startBtn:hover { background: #24603a; }
+  .flash { color: var(--accent-dark); font-weight: 600; }
+
+  #results table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  #results th, #results td {
+    padding: 8px 6px; text-align: left; border-bottom: 1px solid var(--line);
+  }
+  #results th { font-size: .85rem; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+  #results td.num, #results th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  #results tr.winner td { background: #fff4d6; font-weight: 600; }
+  .winner-banner {
+    text-align: center;
+    background: #fff4d6;
+    border: 2px solid var(--gold);
+    border-radius: 12px;
+    padding: 18px;
+  }
+  .winner-banner .trophy { font-size: 3rem; line-height: 1; }
+  .winner-banner .name { font-size: 1.8rem; font-weight: 800; margin: 6px 0; }
+  .winner-banner .detail { color: var(--muted); }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🦃 Turkey Trot Time Guess</h1>
+  <p>Guess your finish time. Closest guess wins!</p>
+</header>
+
+<main>
+  <section>
+    <h2>1. Sign up before the race</h2>
+    <form id="addForm" class="row" autocomplete="off">
+      <input id="nameInput" placeholder="Name" required>
+      <input id="guessInput" placeholder="Guess (mm:ss)" required>
+      <button type="submit">Add runner</button>
+    </form>
+    <p class="hint">Times can be entered as <b>mm:ss</b> (e.g. 32:45), <b>h:mm:ss</b> (e.g. 1:05:20), or plain minutes (e.g. 30).</p>
+    <p class="error" id="addError"></p>
+  </section>
+
+  <section>
+    <h2>2. Race clock</h2>
+    <div class="clock-wrap">
+      <div id="clock" class="idle">0:00</div>
+      <button id="startBtn">▶ Start race</button>
+      <button id="resetBtn" class="link" hidden>Reset clock</button>
+    </div>
+    <p class="hint" id="clockHint">Press <b>Start race</b> when the gun goes off.</p>
+  </section>
+
+  <section>
+    <h2>3. Runners <span class="counts" id="counts"></span></h2>
+    <p class="hint" style="margin:0 0 10px" id="listHint">Once the race starts, click a runner's name as they cross the finish line to log their time.</p>
+    <ul class="runners" id="runnerList"></ul>
+  </section>
+
+  <section>
+    <h2>4. Results</h2>
+    <div class="actions">
+      <button id="resultsBtn">🏆 Show the winner</button>
+      <span class="hint" id="resultsHint" style="margin:0"></span>
+    </div>
+    <div id="results"></div>
+  </section>
+</main>
+
+<script>
+  // In-memory only; data is gone when the page is closed or refreshed.
+  const runners = [];
+  let nextId = 1;
+  const $ = (id) => document.getElementById(id);
+  let openId = null; // runner whose edit form is open
+  let startTime = null; // ms timestamp when the race started
+  let clockTimer = null;
+
+  const elapsed = () => Math.floor((Date.now() - startTime) / 1000);
+
+  function tickClock() {
+    $('clock').textContent = startTime ? fmt(elapsed()) : '0:00';
+  }
+
+  function setRunning(on) {
+    document.body.classList.toggle('running', on);
+    $('clock').classList.toggle('idle', !on);
+    $('startBtn').hidden = on;
+    $('resetBtn').hidden = !on;
+    $('clockHint').innerHTML = on
+      ? 'Race is on! Click each runner\'s name as they finish.'
+      : 'Press <b>Start race</b> when the gun goes off.';
+    $('listHint').textContent = on
+      ? 'Click a runner\'s name the moment they cross the finish line. Use "edit" to fix a mistake.'
+      : 'Once the race starts, click a runner\'s name as they cross the finish line to log their time.';
+    clearInterval(clockTimer);
+    if (on) clockTimer = setInterval(tickClock, 250);
+    tickClock();
+  }
+
+  $('startBtn').addEventListener('click', () => {
+    startTime = Date.now();
+    setRunning(true);
+    render();
+  });
+
+  $('resetBtn').addEventListener('click', () => {
+    const anyTimes = runners.some((r) => r.actual != null);
+    const msg = anyTimes
+      ? 'Reset the clock? This also clears every finish time logged so far.'
+      : 'Reset the clock?';
+    if (!confirm(msg)) return;
+    startTime = null;
+    runners.forEach((r) => { r.actual = null; });
+    openId = null;
+    setRunning(false);
+    $('results').innerHTML = '';
+    $('resultsHint').textContent = '';
+    render();
+  });
+
+  function parseTime(str) {
+    const s = String(str).trim();
+    if (!s) return null;
+    if (/^\d+(\.\d+)?$/.test(s)) return Math.round(parseFloat(s) * 60); // plain minutes
+    const parts = s.split(':');
+    if (parts.length < 2 || parts.length > 3) return null;
+    if (!parts.every((p) => /^\d+$/.test(p))) return null;
+    const nums = parts.map(Number);
+    let h = 0, m, sec;
+    if (nums.length === 3) [h, m, sec] = nums; else [m, sec] = nums;
+    if (sec >= 60 || (nums.length === 3 && m >= 60)) return null;
+    return h * 3600 + m * 60 + sec;
+  }
+
+  function fmt(total) {
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    const pad = (n) => String(n).padStart(2, '0');
+    return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
+  }
+
+  function esc(s) {
+    return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  function render() {
+    const list = $('runnerList');
+    const finished = runners.filter((r) => r.actual != null).length;
+    $('counts').textContent = runners.length ? `(${finished} of ${runners.length} finished)` : '';
+
+    if (!runners.length) {
+      list.innerHTML = '<li class="empty">No runners yet. Add someone above!</li>';
+      return;
+    }
+
+    // Still-running runners first (alphabetical) so they're easy to tap; finishers below in finish order.
+    const sorted = [...runners].sort((a, b) => {
+      if ((a.actual == null) !== (b.actual == null)) return a.actual == null ? -1 : 1;
+      if (a.actual != null) return a.actual - b.actual || a.name.localeCompare(b.name);
+      return a.name.localeCompare(b.name);
+    });
+    list.innerHTML = sorted.map((r) => {
+      const status = r.actual != null
+        ? `<span class="done-badge">✓ ${fmt(r.actual)}</span> <button class="link" data-edit="${r.id}">edit</button>`
+        : (startTime ? 'running' : 'ready')
+          + ` <button class="link" data-edit="${r.id}">edit</button>`;
+      const form = openId === r.id ? `
+        <form class="finish-form" data-id="${r.id}">
+          <input name="actual" placeholder="Actual time (mm:ss)" value="${r.actual != null ? fmt(r.actual) : ''}" autocomplete="off">
+          <button type="submit">Save time</button>
+          ${r.actual != null ? '<button type="button" class="secondary" data-act="clear">Clear time</button>' : ''}
+          <button type="button" class="link" data-act="cancel">Cancel</button>
+          <button type="button" class="link" data-act="remove">Remove runner</button>
+        </form>
+        <p class="error" id="err-${r.id}" style="margin-left:8px"></p>` : '';
+      return `<li class="${r.actual != null ? 'finished' : ''}">
+        <div class="runner-row">
+          <button class="runner-name" data-runner="${r.id}">${esc(r.name)}</button>
+          <span class="runner-meta">guess ${fmt(r.guess)} · ${status}</span>
+        </div>
+        ${form}
+      </li>`;
+    }).join('');
+
+    if (openId != null) {
+      const input = list.querySelector('.finish-form input');
+      if (input) { input.focus(); input.select(); }
+    }
+  }
+
+  $('addForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = $('nameInput').value.trim();
+    const guess = parseTime($('guessInput').value);
+    const err = $('addError');
+    if (!name) { err.textContent = 'Please enter a name.'; return; }
+    if (runners.some((r) => r.name.toLowerCase() === name.toLowerCase())) {
+      err.textContent = `"${name}" is already signed up. Add a last initial to tell them apart.`; return;
+    }
+    if (guess == null || guess <= 0) { err.textContent = 'Please enter a valid guess, like 32:45.'; return; }
+    err.textContent = '';
+    runners.push({ id: nextId++, name, guess, actual: null });
+    $('nameInput').value = '';
+    $('guessInput').value = '';
+    $('nameInput').focus();
+    render();
+  });
+
+  $('runnerList').addEventListener('click', (e) => {
+    const nameBtn = e.target.closest('[data-runner]');
+    if (nameBtn) {
+      const r = runners.find((x) => x.id === Number(nameBtn.dataset.runner));
+      if (!startTime) {
+        $('listHint').innerHTML = '<span class="flash">Start the race first, then click names as runners finish.</span>';
+        return;
+      }
+      if (r.actual == null) {
+        r.actual = elapsed(); // log finish time
+        if (openId === r.id) openId = null;
+        render();
+      } else {
+        // Already finished: open the edit form rather than overwrite the time.
+        openId = openId === r.id ? null : r.id;
+        render();
+      }
+      return;
+    }
+    const editBtn = e.target.closest('[data-edit]');
+    if (editBtn) {
+      const id = Number(editBtn.dataset.edit);
+      openId = openId === id ? null : id;
+      render();
+      return;
+    }
+    const act = e.target.closest('[data-act]');
+    if (!act) return;
+    const id = Number(act.closest('form').dataset.id);
+    const r = runners.find((x) => x.id === id);
+    if (act.dataset.act === 'cancel') openId = null;
+    if (act.dataset.act === 'clear') { r.actual = null; openId = null; }
+    if (act.dataset.act === 'remove' && confirm(`Remove ${r.name}?`)) {
+      runners.splice(runners.indexOf(r), 1);
+      openId = null;
+    }
+    render();
+  });
+
+  $('runnerList').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const id = Number(form.dataset.id);
+    const r = runners.find((x) => x.id === id);
+    const actual = parseTime(form.actual.value);
+    if (actual == null || actual <= 0) {
+      $(`err-${id}`).textContent = 'Please enter a valid time, like 33:10.';
+      return;
+    }
+    r.actual = actual;
+    openId = null;
+    render();
+  });
+
+  $('resultsBtn').addEventListener('click', () => {
+    const done = runners.filter((r) => r.actual != null);
+    const out = $('results');
+    const pending = runners.length - done.length;
+    $('resultsHint').textContent = pending > 0
+      ? `Heads up: ${pending} runner${pending > 1 ? 's haven\'t' : ' hasn\'t'} entered a time yet and ${pending > 1 ? 'are' : 'is'} not included.`
+      : '';
+
+    if (!done.length) {
+      out.innerHTML = '<p class="empty">No finish times entered yet.</p>';
+      return;
+    }
+
+    const ranked = done
+      .map((r) => ({ ...r, diff: Math.abs(r.actual - r.guess) }))
+      .sort((a, b) => a.diff - b.diff || a.name.localeCompare(b.name));
+    const best = ranked[0].diff;
+    const winners = ranked.filter((r) => r.diff === best);
+
+    const diffText = (r) => {
+      if (r.diff === 0) return 'exactly on!';
+      return `${fmt(r.diff)} ${r.actual > r.guess ? 'slower' : 'faster'}`;
+    };
+
+    const banner = `
+      <div class="winner-banner" style="margin-top:14px">
+        <div class="trophy">🏆</div>
+        <div class="hint" style="margin:0">${winners.length > 1 ? "It's a tie! Winners:" : 'And the winner is…'}</div>
+        <div class="name">${winners.map((w) => esc(w.name)).join(' & ')}</div>
+        <div class="detail">${best === 0 ? 'Guessed their time exactly!' : `Only ${fmt(best)} off their guess`}</div>
+      </div>`;
+
+    const rows = ranked.map((r, i) => {
+      const place = ranked.findIndex((x) => x.diff === r.diff) + 1;
+      return `<tr class="${r.diff === best ? 'winner' : ''}">
+        <td>${place}</td>
+        <td>${esc(r.name)}</td>
+        <td class="num">${fmt(r.guess)}</td>
+        <td class="num">${fmt(r.actual)}</td>
+        <td class="num">${diffText(r)}</td>
+      </tr>`;
+    }).join('');
+
+    out.innerHTML = banner + `
+      <table>
+        <thead><tr><th>#</th><th>Name</th><th class="num">Guess</th><th class="num">Actual</th><th class="num">Off by</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+    out.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  // Since nothing is saved, warn before accidentally closing/refreshing.
+  window.addEventListener('beforeunload', (e) => {
+    if (runners.length) { e.preventDefault(); e.returnValue = ''; }
+  });
+
+  render();
+</script>
+</body>
+</html>
